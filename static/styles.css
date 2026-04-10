@@ -1,0 +1,209 @@
+/* Reset dan Pengaturan Dasar */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, #f0fff0, #f8f8f8);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 30px 20px;
+    text-align: center;
+}
+
+header p {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #e8ffe8;
+    text-align: center;
+}
+
+/* Navigasi */
+nav {
+    background-color: #ffffff;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+nav a {
+    color: #4CAF50;
+    font-weight: bold;
+    margin: 0 20px;
+    text-decoration: none;
+    font-size: 18px;
+    padding: 10px 15px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+nav a:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Konten Utama */
+main {
+    flex: 1;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: justify;
+}
+
+/* Kontainer Umum */
+.container {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 800px;
+    text-align: center;
+}
+
+/* Judul dan Paragraf */
+h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #4CAF50;
+    text-align: center;
+}
+
+h3 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    text-align: left;
+    padding-left: 25%;
+    
+}
+
+.kontak-p {
+    text-align: center;
+}
+
+p {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    text-align: justify;
+}
+
+a {
+    display: flex;
+    align-items: center;
+    margin-right: 30px;
+    text-decoration: none;
+    font-size: 15px;
+}
+
+img {
+    width: 30px;
+    height: 30px;
+    margin-right: 50px;
+}
+
+b {
+    color: rgb(126, 88, 203);
+}
+
+/* Input Gambar */
+#fileInput {
+    display: block;
+    margin: 0 auto 20px auto;
+    padding: 12px;
+    border: 2px dashed #4CAF50;
+    border-radius: 10px;
+    background-color: #f0fff0;
+    cursor: pointer;
+    width: 100%;
+    max-width: 400px;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+#fileInput:hover {
+    border-color: #45a049;
+    background-color: #e6ffe6;
+}
+
+#preview {
+    max-width: 100%;
+    margin: 20px auto;
+    display: block;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* Tombol Deteksi */
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    display: block;
+    margin: 0 auto 30px auto;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #388e3c;
+}
+
+/* Hasil Deteksi */
+#result {
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 12px;
+    background-color: #f1fff1;
+    box-shadow: 0 0 10px rgba(0, 100, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+#loading {
+    font-size: 1rem;
+    color: #555;
+    font-style: italic;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+#prediction {
+    font-size: 1.3rem;
+    color: #2e7d32;
+    font-weight: bold;
+    display: none;
+    text-align: center;
+}
+
+
+/* Responsif */
+@media (max-width: 600px) {
+    nav {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    nav a {
+        margin: 10px 0;
+    }
+
+    .container {
+        padding: 20px;
+    }
+}

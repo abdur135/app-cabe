@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Deteksi Penyakit Tanaman Cabai</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Deteksi Penyakit Tanaman Cabai</h1>
+        <p>Berbasis Web Menggunakan Algoritma SVM</p>
+    </header>
+
+    <br>
+    <h2>Mulai Deteksi</h2>
+
+    <input type="file" id="fileInput" accept="image/*" required>
+    <button onclick="uploadImage()">Deteksi</button>
+
+    <div id="result" style="display: none;">
+        <p id="loading" style="display: none;">Sedang memproses gambar...</p>
+        <p id="prediction" style="display: none;"></p>
+    </div>
+
+    <!-- Memuat JavaScript dari folder static -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+
+    <h3>Hubungi:</h3>
+    
+    <h3>
+        <a href="https://instagram.com/abdur_135"><img src="https://img.icons8.com/fluency/48/000000/instagram-new.png" alt="Instagram">
+        <b>abdur_135</b></a>
+    </h3>
+
+    <h3>
+        <a href="https://wa.me/6282118134540"><img src="https://img.icons8.com/color/48/000000/whatsapp--v1.png" alt="WhatsApp">
+        <b>+62 82118134540</b></a>
+    </h3>
+
+    <h3>
+        <a href="mailto:abdulrahmanaja135@gmail.com"><img src="https://img.icons8.com/color/48/000000/new-post.png" alt="Email">
+        <b>abdulrahmanaja135@gmail.com</b></a>
+    </h3>
+    <p class="kontak-p">untuk informasi lebih lanjut dapat menghubungi akun media sosial di atas</p>
+
+</body>
+</html>
