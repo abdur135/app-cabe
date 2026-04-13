@@ -5,3 +5,4 @@ scikit-learn
 pillow
 joblib
 gunicorn
+opencv-python

@@ -1,92 +1,127 @@
 import os
 import joblib
+import numpy as np
+import cv2
 from flask import Flask, request, jsonify, render_template
 from PIL import Image
-import numpy as np
 
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.applications import MobileNetV2
 
+# ================= APP =================
 app = Flask(__name__)
 
-# ================= LOAD =================
-svm_model = joblib.load('svm_model.pkl')
-label_encoder = joblib.load('label_encoder.pkl')
+UPLOAD_FOLDER = "static/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# LAZY LOAD CNN
-base_model = None
+# ================= LOAD MODEL =================
+svm_model = joblib.load("svm_model.pkl")
+label_encoder = joblib.load("label_encoder.pkl")
 
-def get_model():
-    global base_model
-    if base_model is None:
-        base_model = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
-    return base_model
+# ================= CNN FEATURE EXTRACTOR =================
+base_model = MobileNetV2(
+    weights="imagenet",
+    include_top=False,
+    pooling="avg",
+    input_shape=(224,224,3)
+)
 
 # ================= LABEL =================
 label_mapping = {
-    'healthy': 'Healthy (Sehat)',
-    'leaf curl': 'Leaf Curl (Keriting Daun)',
-    'leaf spot': 'Leaf Spot (Bercak Daun)',
-    'whitefly': 'Whitefly (Kutu Putih)',
-    'yellowish': 'Yellowish (Virus Kuning)'
+    "healthy": "Healthy (Sehat)",
+    "leaf curl": "Leaf Curl (Keriting Daun)",
+    "leaf spot": "Leaf Spot (Bercak Daun)",
+    "whitefly": "Whitefly (Kutu Putih)",
+    "yellowish": "Yellowish (Virus Kuning)"
 }
 
-# ================= PREPROCESS =================
+# ================= RESIZE KEEP RATIO =================
+def resize_keep_ratio(img):
+    h, w, _ = img.shape
+    scale = 224 / max(h, w)
+
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+
+    img = cv2.resize(img, (new_w, new_h))
+
+    top = (224 - new_h) // 2
+    bottom = 224 - new_h - top
+    left = (224 - new_w) // 2
+    right = 224 - new_w - left
+
+    img = cv2.copyMakeBorder(
+        img, top, bottom, left, right,
+        cv2.BORDER_CONSTANT, value=[0,0,0]
+    )
+    return img
+
+# ================= PREPROCESS (WAJIB SAMA TRAINING) =================
 def process_image(img):
     img = img.convert("RGB")
-    img = img.resize((224, 224))
+    img = np.array(img)
 
-    img_array = np.array(img)
+    h, w, _ = img.shape
+    if h < 100 or w < 100:
+        raise ValueError("Gambar terlalu kecil")
 
-    if img_array.mean() < 30:
-        raise ValueError("Gambar terlalu gelap")
+    # resize saja (NO SHARPEN / NO COLOR SHIFT / NO NOISE)
+    img = resize_keep_ratio(img)
 
-    img_array = preprocess_input(img_array)
-    img_array = np.expand_dims(img_array, axis=0)
+    # CNN preprocess
+    img = preprocess_input(img)
+    img = np.expand_dims(img, axis=0)
 
-    return img_array
+    return img
 
-# ================= ROUTE =================
-@app.route('/')
+# ================= HOME =================
+@app.route("/")
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
 # ================= PREDICT =================
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
-    if 'file' not in request.files:
-        return jsonify({'error': 'Tidak ada file'})
 
-    file = request.files['file']
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"})
+
+    file = request.files["file"]
 
     try:
-        img = Image.open(file.stream)
+        # ================= SAVE IMAGE =================
+        path = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(path)
+
+        # ================= LOAD IMAGE =================
+        img = Image.open(path)
         img_array = process_image(img)
 
-        model_cnn = get_model()
-        features = model_cnn.predict(img_array)
-        features = features.flatten().reshape(1, -1)
+        # ================= FEATURE EXTRACTION =================
+        features = base_model.predict(img_array, verbose=0).flatten()
 
-        probs = svm_model.predict_proba(features)[0]
-        pred_class = np.argmax(probs)
+        # ================= SVM PREDICTION =================
+        probs = svm_model.predict_proba(features.reshape(1, -1))[0]
+
+        pred_idx = np.argmax(probs)
         confidence = float(np.max(probs))
 
-        raw_label = label_encoder.inverse_transform([pred_class])[0].lower()
+        raw_label = label_encoder.inverse_transform([pred_idx])[0].lower()
 
-        if confidence < 0.55:
-            label = "Tidak yakin"
+        # ================= RESULT =================
+        if confidence < 0.65:
+            result = "Tidak yakin / coba gambar lain"
         else:
-            label = label_mapping.get(raw_label, raw_label)
+            result = label_mapping.get(raw_label, raw_label)
 
         return jsonify({
-            'prediction': label,
-            'confidence': confidence
+            "prediction": result,
+            "confidence": confidence
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify({"error": str(e)})
 
 # ================= RUN =================
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=10000, debug=True)
