@@ -1,8 +1,7 @@
 flask
 numpy
-tensorflow
-scikit-learn
 pillow
 joblib
+scikit-learn
+tensorflow
 gunicorn
-opencv-python
