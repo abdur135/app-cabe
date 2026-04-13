@@ -12,7 +12,14 @@ app = Flask(__name__)
 svm_model = joblib.load('svm_model.pkl')
 label_encoder = joblib.load('label_encoder.pkl')
 
-base_model = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
+# LAZY LOAD CNN
+base_model = None
+
+def get_model():
+    global base_model
+    if base_model is None:
+        base_model = MobileNetV2(weights='imagenet', include_top=False, pooling='avg')
+    return base_model
 
 # ================= LABEL =================
 label_mapping = {
@@ -55,7 +62,8 @@ def predict():
         img = Image.open(file.stream)
         img_array = process_image(img)
 
-        features = base_model.predict(img_array)
+        model_cnn = get_model()
+        features = model_cnn.predict(img_array)
         features = features.flatten().reshape(1, -1)
 
         probs = svm_model.predict_proba(features)[0]
@@ -64,7 +72,7 @@ def predict():
 
         raw_label = label_encoder.inverse_transform([pred_class])[0].lower()
 
-        if confidence < 0.5:
+        if confidence < 0.55:
             label = "Tidak yakin"
         else:
             label = label_mapping.get(raw_label, raw_label)
@@ -78,10 +86,5 @@ def predict():
         return jsonify({'error': str(e)})
 
 # ================= RUN =================
-
-import os
-
-port = int(os.environ.get("PORT", 5000))
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
