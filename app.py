@@ -1,24 +1,20 @@
-import os
 import joblib
 import numpy as np
 import cv2
 from flask import Flask, request, jsonify, render_template
 from PIL import Image
 
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
 # ================= APP =================
 app = Flask(__name__)
-
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ================= LOAD MODEL =================
 svm_model = joblib.load("svm_model.pkl")
 label_encoder = joblib.load("label_encoder.pkl")
 
-# ================= CNN FEATURE EXTRACTOR =================
+# ================= CNN =================
 base_model = MobileNetV2(
     weights="imagenet",
     include_top=False,
@@ -26,53 +22,51 @@ base_model = MobileNetV2(
     input_shape=(224,224,3)
 )
 
-# ================= LABEL =================
-label_mapping = {
+# ================= TEXTURE =================
+def get_lbp(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    lbp = cv2.Laplacian(gray, cv2.CV_64F)
+    hist = np.histogram(lbp.ravel(), bins=32, range=(-255,255))[0]
+    return hist / (np.sum(hist) + 1e-7)
+
+def get_hsv(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    hist = cv2.calcHist(
+        [hsv],
+        [0,1,2],
+        None,
+        [8,8,8],
+        [0,180,0,256,0,256]
+    ).flatten()
+    return hist / (np.sum(hist) + 1e-7)
+
+# ================= PREPROCESS =================
+def preprocess_image(img):
+    img = img.convert("RGB")
+    img = np.array(img)
+    img = cv2.resize(img, (224,224))
+    return img
+
+# ================= FEATURE EXTRACTION =================
+def extract_features(img):
+    x = preprocess_input(img)
+    x = np.expand_dims(x, axis=0)
+
+    cnn_feat = base_model.predict(x, verbose=0).flatten()
+
+    lbp_feat = get_lbp(img)
+    hsv_feat = get_hsv(img)
+
+    return np.concatenate([cnn_feat, lbp_feat, hsv_feat])
+
+# ================= LABEL MAP =================
+label_map = {
     "healthy": "Healthy (Sehat)",
     "leaf curl": "Leaf Curl (Keriting Daun)",
     "leaf spot": "Leaf Spot (Bercak Daun)",
     "whitefly": "Whitefly (Kutu Putih)",
     "yellowish": "Yellowish (Virus Kuning)"
 }
-
-# ================= RESIZE KEEP RATIO =================
-def resize_keep_ratio(img):
-    h, w, _ = img.shape
-    scale = 224 / max(h, w)
-
-    new_w = int(w * scale)
-    new_h = int(h * scale)
-
-    img = cv2.resize(img, (new_w, new_h))
-
-    top = (224 - new_h) // 2
-    bottom = 224 - new_h - top
-    left = (224 - new_w) // 2
-    right = 224 - new_w - left
-
-    img = cv2.copyMakeBorder(
-        img, top, bottom, left, right,
-        cv2.BORDER_CONSTANT, value=[0,0,0]
-    )
-    return img
-
-# ================= PREPROCESS (WAJIB SAMA TRAINING) =================
-def process_image(img):
-    img = img.convert("RGB")
-    img = np.array(img)
-
-    h, w, _ = img.shape
-    if h < 100 or w < 100:
-        raise ValueError("Gambar terlalu kecil")
-
-    # resize saja (NO SHARPEN / NO COLOR SHIFT / NO NOISE)
-    img = resize_keep_ratio(img)
-
-    # CNN preprocess
-    img = preprocess_input(img)
-    img = np.expand_dims(img, axis=0)
-
-    return img
 
 # ================= HOME =================
 @app.route("/")
@@ -89,30 +83,28 @@ def predict():
     file = request.files["file"]
 
     try:
-        # ================= SAVE IMAGE =================
-        path = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(path)
+        # langsung dari memory (NO SAVE FILE)
+        img = Image.open(file.stream)
 
-        # ================= LOAD IMAGE =================
-        img = Image.open(path)
-        img_array = process_image(img)
+        # preprocess
+        img = preprocess_image(img)
 
-        # ================= FEATURE EXTRACTION =================
-        features = base_model.predict(img_array, verbose=0).flatten()
+        # feature extraction
+        features = extract_features(img).reshape(1, -1)
 
-        # ================= SVM PREDICTION =================
-        probs = svm_model.predict_proba(features.reshape(1, -1))[0]
+        # prediction
+        probs = svm_model.predict_proba(features)[0]
 
-        pred_idx = np.argmax(probs)
+        idx = np.argmax(probs)
         confidence = float(np.max(probs))
 
-        raw_label = label_encoder.inverse_transform([pred_idx])[0].lower()
+        raw_label = label_encoder.inverse_transform([idx])[0].lower()
 
-        # ================= RESULT =================
-        if confidence < 0.65:
+        # ================= LOGIC =================
+        if confidence < 0.60:
             result = "Tidak yakin / coba gambar lain"
         else:
-            result = label_mapping.get(raw_label, raw_label)
+            result = label_map.get(raw_label, raw_label)
 
         return jsonify({
             "prediction": result,
