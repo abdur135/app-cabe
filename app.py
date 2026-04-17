@@ -2,7 +2,7 @@ import joblib
 import numpy as np
 from flask import Flask, request, jsonify, render_template
 
-from feature_extractor import extract_features_from_file
+from feature_extractor import extract_features
 
 # ================= APP =================
 app = Flask(__name__)
@@ -34,7 +34,7 @@ def predict():
     file = request.files["file"]
 
     try:
-        features = extract_features_from_file(file).reshape(1, -1)
+        features = extract_features(file).reshape(1, -1)
 
         probs = svm_model.predict_proba(features)[0]
         idx = int(np.argmax(probs))

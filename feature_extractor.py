@@ -26,7 +26,7 @@ def get_hsv(img):
     return hist / (np.sum(hist) + 1e-7)
 
 # ================= FEATURE EXTRACTION =================
-def extract_features_from_file(file):
+def extract_features(file):
     img = Image.open(file).convert("RGB")
     img = np.array(img)
     img = cv2.resize(img, (224,224))
